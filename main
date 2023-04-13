@@ -1,0 +1,89 @@
+import os
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog, QTreeView, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox
+from PyQt5.QtCore import QDir, Qt
+
+class FileBrowser(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setGeometry(300, 300, 800, 500)
+        self.setWindowTitle('File Browser')
+
+        # Create a label to display the current directory path
+        self.pathLabel = QLabel(self)
+        self.pathLabel.move(10, 10)
+
+        # Create a line edit widget to allow the user to enter a file path
+        self.pathEdit = QLineEdit(self)
+        self.pathEdit.setGeometry(10, 40, 200, 30)
+        self.pathEdit.returnPressed.connect(self.changeDirectory)
+
+        # Create a button to allow the user to browse for a file
+        self.browseButton = QPushButton('Browse', self)
+        self.browseButton.setGeometry(220, 40, 75, 30)
+        self.browseButton.clicked.connect(self.showDialog)
+
+        # Create a button to allow the user to go up one level in the directory hierarchy
+        self.upButton = QPushButton('Up', self)
+        self.upButton.setGeometry(300, 40, 75, 30)
+        self.upButton.clicked.connect(self.upDirectory)
+
+        # Create a tree view to display the directory contents
+        self.treeView = QTreeView(self)
+        self.treeView.setGeometry(10, 80, 780, 400)
+
+        # Set up the layout
+        vbox = QVBoxLayout()
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.pathEdit)
+        hbox.addWidget(self.browseButton)
+        hbox.addWidget(self.upButton)
+        vbox.addWidget(self.pathLabel)
+        vbox.addLayout(hbox)
+        vbox.addWidget(self.treeView)
+        self.setLayout(vbox)
+
+        # Set the current directory to the home directory
+        self.currentDirectory = QDir.homePath()
+        self.updateDirectory()
+
+        self.show()
+
+    def showDialog(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;Python Files (*.py)", options=options)
+        if fileName:
+            self.pathEdit.setText(fileName)
+            self.changeDirectory()
+
+    def changeDirectory(self):
+        path = self.pathEdit.text()
+        if os.path.exists(path):
+            self.currentDirectory = path
+            self.updateDirectory()
+        else:
+            QMessageBox.warning(self, 'Error', 'The specified directory does not exist.')
+
+    def upDirectory(self):
+        parentDir = os.path.abspath(os.path.join(self.currentDirectory, os.pardir))
+        if os.path.exists(parentDir):
+            self.currentDirectory = parentDir
+            self.updateDirectory()
+
+    def updateDirectory(self):
+        self.pathLabel.setText(self.currentDirectory)
+        self.pathEdit.setText(self.currentDirectory)
+
+        model = QDirModel()
+        model.setRootPath(self.currentDirectory)
+        self.treeView.setModel(model)
+        self.treeView.setRootIndex(model.index(self.currentDirectory))
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = FileBrowser()
+    sys.exit(app.exec_())
